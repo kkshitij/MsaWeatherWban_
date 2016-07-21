@@ -21,12 +21,14 @@ object percipcompute {
 var datef = DateTimeFormat.forPattern("yyyyMMdd")
       
   def main(args: Array[String]) {
-//val sparkConf = new SparkConf().setAppName("kshitij")
-val log = Logger.getLogger(getClass.getName)
+
 
 var dateM = new LocalDate("2015-05-01")
-val sparkConf = new SparkConf().setMaster("local").setAppName("kshitij")
+val sparkConf = new SparkConf().setAppName("kshitij") // YARN 
+//val sparkConf = new SparkConf().setMaster("local").setAppName("kshitij") //local
 val sparkCont = new SparkContext(sparkConf)
+val log = Logger.getLogger(getClass.getName)
+
 val accumPrecepInvRec = sparkCont.accumulator(0, "Invalid Record")
 val accumPrecepValRec = sparkCont.accumulator(0, "Valid Record")
 val accumPrecepInvWBAN = sparkCont.accumulator(0, "Invalid WBANS")
@@ -48,7 +50,7 @@ val station = sparkCont.textFile(args(1))
 val population = sparkCont.textFile(args(2))
 
 
-
+println ("HHHHHHHHHHHHH PREEEEEEEEEECIP")
 val percepTemp1 = percep.map(x => { if (x == "" ) { accumPrecepInvRec += 1 }
 							     x.split(",") })
   						.filter(T => {          	  
@@ -60,7 +62,9 @@ val percepTemp1 = percep.map(x => { if (x == "" ) { accumPrecepInvRec += 1 }
 							   case _ =>  true
   							}) &&
     						(validateInt(T(2)) match {
-							  case Some(i) if (i <= 07) =>  {  accumPrecepLess7Hr += 1 ; false}
+							  case Some(i) if (i <= 07) =>  {  accumPrecepLess7Hr += 1
+							    
+							    ; false}
 							  case None => accumPrecepInvHr += 1 ; false
 							   case _ =>  true
   							}) &&
@@ -94,8 +98,9 @@ val stationTemp = station.map(x => { if (x == "" ) { accumStationInvRec += 1 }
 						val JoinedPrecip_Station = precepTemp.join(IntermedStation1)
 				
 						//						val l = JoinedPrecip_Station.map(a => (a._2._2 -> (a._2._1,1))).reduceByKey((a,b) => ((a._1 + b._1)/(a._2 + b._2),1)).saveAsTextFile(args(3))
-					val Precep_StationF = JoinedPrecip_Station.map(a => (a._2._2 -> (a._2._1,1))).reduceByKey((a,b) => ((a._1 + b._1)/(a._2 + b._2),1))//.saveAsTextFile(args(3))
-						val Precep_StationFInter = Precep_StationF.saveAsTextFile(args(3))
+					val Precep_StationF = JoinedPrecip_Station.map(a => (a._2._2 -> (a._2._1,1))).reduceByKey((a,b) => ((a._1 + b._1)/(a._2 + b._2),1)).persist//.saveAsTextFile(args(3))
+					println ("CAAAAAAAAAACHED JOINED")	
+					//val Precep_StationFInter = Precep_StationF.saveAsTextFile(args(4))
 			
 
 //###################population#############		
@@ -115,9 +120,11 @@ val stationTemp = station.map(x => { if (x == "" ) { accumStationInvRec += 1 }
 		  
 		  
 		val broadcastedPopulation = sparkCont.broadcast(populationTemp.collectAsMap)
-		//println(broadcastedPopulation.value)
+							println ("CAAAAAAAAAACHED JOINED")	
+
+println(broadcastedPopulation.value)
 		
-		val j = Precep_StationF.map(a => (a._1 ,broadcastedPopulation.value.get(a._1))).saveAsTextFile(args(4)) //Intermediate
+	//	val j = Precep_StationF.map(a => (a._1 ,broadcastedPopulation.value.get(a._1))).saveAsTextFile(args(4)) //Intermediate
 val Final = Precep_StationF.map(a => {
   var temp : Int = 0
   var MSADet : String = "Others"
@@ -132,8 +139,11 @@ val Final = Precep_StationF.map(a => {
         
   }
   
-  (a._1 -> (temp,a._2._1,temp*a._2._1,MSADet))
-}).sortBy(a => a._2._3 , false, 1).saveAsTextFile(args(5))
+  (a._1,temp,a._2._1,temp*a._2._1,MSADet)
+}).sortBy(a => a._4 , false, 1).saveAsTextFile(args(3))
+
+
+
 }
 		
 
