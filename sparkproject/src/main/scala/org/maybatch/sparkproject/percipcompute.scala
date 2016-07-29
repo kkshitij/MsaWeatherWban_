@@ -70,7 +70,7 @@ val percepTemp1 = percep.map(x => { if (x == "" ) { accumPrecepInvRec += 1 }
 							   case _ =>  true
   							}) &&
     						(validateInt(T(2)) match {
-							  case Some(i) if (i <= 07) =>  {  accumPrecepLess7Hr += 1
+							  case Some(i) if (i <= 7) =>  {  accumPrecepLess7Hr += 1 //REVERT 07
 							    
 							    ; false}
 							  case None => accumPrecepInvHr += 1 ; false
@@ -105,7 +105,7 @@ val stationTemp = station.map(x => { if (x == "" ) { accumStationInvRec += 1 }
 							    })
 							    
 						//val IntermedStation =  stationTemp.map( t => (t(0).toInt,validateInt(t(15)).getOrElse(00000),t(3),t(4),t(5),t(6),t(7),t(8))).saveAsTextFile(args(4)) //
-						val IntermedStation1 =  stationTemp.map( t => (t(0).toInt,validateInt(t(15)).getOrElse(00000)))							    
+						val IntermedStation1 =  stationTemp.map( t => (t(0).toInt,validateInt(t(15)).getOrElse(1)))		//changed from 00000 REVERT					    
 
 						val JoinedPrecip_Station = precepTemp.join(IntermedStation1)
 				
