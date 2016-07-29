@@ -22,7 +22,7 @@
     <version>2.11.8</version>
 </dependency>
 		
-		<!-- https://mvnrepository.com/artifact/joda-time/joda-tidme -->
+		<!-- https://mvnrepository.com/artifact/joda-time/joda-satidme -->
 		<dependency>
 		    <groupId>joda-time</groupId>
 		    <artifactId>joda-time</artifactId>
