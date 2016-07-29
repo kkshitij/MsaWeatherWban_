@@ -32,7 +32,7 @@
 
 	<build>
 		<plugins>
-			<!-- mixed scala/java compile -->
+			<!-- mixed scala/java compile 1 -->
 			<plugin>
   
         <groupId>org.apache.maven.plugins</groupId>
