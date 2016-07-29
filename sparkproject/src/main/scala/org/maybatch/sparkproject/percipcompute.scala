@@ -110,8 +110,8 @@ val stationTemp = station.map(x => { if (x == "" ) { accumStationInvRec += 1 }
 						val JoinedPrecip_Station = precepTemp.join(IntermedStation1)
 				
 					
-					val Precep_StationF = JoinedPrecip_Station.map(a => (a._2._2 -> (a._2._1,1))).reduceByKey((a,b) => ((a._1 + b._1)/(a._2 + b._2),1)).persist//.saveAsTextFile(args(3))
-					println ("CAAAAAAAAAACHED JOINED")	
+					val Precep_StationF = JoinedPrecip_Station.map(a => (a._2._2,(a._2._1,1))).reduceByKey((a,b) => ((a._1 + b._1)/(a._2 + b._2),1)).persist//.saveAsTextFile(args(3))
+					//println ("CAAAAAAAAAACHED JOINED")	
 					//val Precep_StationFInter = Precep_StationF.saveAsTextFile(args(4))
 			
 
