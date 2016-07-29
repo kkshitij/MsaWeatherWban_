@@ -15,7 +15,12 @@ import org.joda.time.YearMonthDay
 import org.joda.time.LocalDate
 
 
-//comment Final
+/*
+ * Spark job to load Station, precip , population RDD 
+ * and generate a sorted list of wettest MSA.
+ * 
+ * 
+ */
 object percipcompute {
 
 var datef = DateTimeFormat.forPattern("yyyyMMdd")
@@ -25,7 +30,7 @@ var datef = DateTimeFormat.forPattern("yyyyMMdd")
 
 var dateM = new LocalDate("2015-05-01")
 val sparkConf = new SparkConf().setAppName("kshitij") // YARN 
-//val sparkConf = new SparkConf().setMaster("local").setAppName("kshitij") //local
+//val sparkConf = new SparkConf().setMaster("local").setAppName("kshitij") //local mode , use for debugging
 val sparkCont = new SparkContext(sparkConf)
 val log = Logger.getLogger(getClass.getName)
 
@@ -42,15 +47,18 @@ val accumStationInvWBAN = sparkCont.accumulator(0, "Station - Invalid WBAN")
 val accumStationInvCBSA = sparkCont.accumulator(0, "Station - Invalid CBSA")
 val accumStationBlankCBSA = sparkCont.accumulator(0, "Station - Blank CBSA")
 val accumPopulaInvRec = sparkCont.accumulator(0, "Invalid Record")
-val accumPopulaBlankCBSA = sparkCont.accumulator(0, "Invalid Record")
-val accumPopulaInvalidPop = sparkCont.accumulator(0, "Invalid Record")
+val accumPopulaBlankCBSA = sparkCont.accumulator(0, "Blank CBSA Record")
+val accumPopulaInvalidPop = sparkCont.accumulator(0, "Invalid POPULATION  Record")
 
-val percep = sparkCont.textFile(args(0))
-val station = sparkCont.textFile(args(1))
-val population = sparkCont.textFile(args(2))
+val percep = sparkCont.textFile(args(0))   //precip
+val station = sparkCont.textFile(args(1))  // station
+val population = sparkCont.textFile(args(2)) //population
 
+/*
+ * Load Precep data and filter
+ */
 
-println ("HHHHHHHHHHHHH PREEEEEEEEEECIP")
+try {
 val percepTemp1 = percep.map(x => { if (x == "" ) { accumPrecepInvRec += 1 }
 							     x.split(",") })
   						.filter(T => {          	  
@@ -74,11 +82,15 @@ val percepTemp1 = percep.map(x => { if (x == "" ) { accumPrecepInvRec += 1 }
     						})
   							
 })       	 
-         	
-     //val h = percepTemp1.map(x => (x(0) ,x(1) ,x(2) ,x(3)) )  //Intermediate  (to debug	
+
+
+
 val precepTemp = percepTemp1.map(x => (x(0).toInt,x(3).toFloat) ).reduceByKey((a,b) => a + b)
 
-//###################Station#############
+/*
+ * Load Station data and filter
+ */
+
 
 val stationTemp = station.map(x => { if (x == "" ) { accumStationInvRec += 1 }
 							    x.split(",",-1) }).filter(T => {          	  
@@ -97,14 +109,15 @@ val stationTemp = station.map(x => { if (x == "" ) { accumStationInvRec += 1 }
 
 						val JoinedPrecip_Station = precepTemp.join(IntermedStation1)
 				
-						//						val l = JoinedPrecip_Station.map(a => (a._2._2 -> (a._2._1,1))).reduceByKey((a,b) => ((a._1 + b._1)/(a._2 + b._2),1)).saveAsTextFile(args(3))
+					
 					val Precep_StationF = JoinedPrecip_Station.map(a => (a._2._2 -> (a._2._1,1))).reduceByKey((a,b) => ((a._1 + b._1)/(a._2 + b._2),1)).persist//.saveAsTextFile(args(3))
 					println ("CAAAAAAAAAACHED JOINED")	
 					//val Precep_StationFInter = Precep_StationF.saveAsTextFile(args(4))
 			
 
-//###################population#############		
-					
+/*
+ * Load POPULATION  data and filter
+ */
 		val	populationTemp =  population.map(x => { if (x == "" ) { accumPopulaInvRec += 1 }
 							     x.split(",") })
   						.filter(T => {          	  
@@ -118,7 +131,7 @@ val stationTemp = station.map(x => { if (x == "" ) { accumStationInvRec += 1 }
   							
 }).map(T => (T(0).toInt, (T(1) + T(2) , T(4).toInt)))
 		  
-		  
+	// BROADCAST population as its a small lookup table	  
 		val broadcastedPopulation = sparkCont.broadcast(populationTemp.collectAsMap)
 							println ("CAAAAAAAAAACHED JOINED")	
 
@@ -131,7 +144,7 @@ val Final = Precep_StationF.map(a => {
    broadcastedPopulation.value.get(a._1) match {
     case Some(i) => {
       
-    temp = broadcastedPopulation.value.get(a._1).get._2
+    temp = broadcastedPopulation.value.get(a._1).get._2   // lookup from broadcast var
     MSADet = broadcastedPopulation.value.get(a._1).get._1
     }
     case None => {   temp = 0
@@ -140,9 +153,14 @@ val Final = Precep_StationF.map(a => {
   }
   
   (a._1,temp,a._2._1,temp*a._2._1,MSADet)
-}).sortBy(a => a._4 , false, 1).saveAsTextFile(args(3))
+}).sortBy(a => a._4 , false, 1).saveAsTextFile(args(3))   //SAVE final results
 
 
+}  catch {
+  case e: Exception => println("Exception in job" + e);
+} finally{
+   
+}
 
 }
 		
